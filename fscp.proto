@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package fscp;
+
+enum Algo {
+  SHA1 = 0;
+  SHA256 = 1;
+}
+
+message Init {
+  Algo algo = 1;
+}
+
+message File {
+  // Path to the file, relative to previous file or when absolute, relative to the root
+  string path = 1;
+  // File length
+  uint64 len = 3;
+  // Modification timestamp in UTC
+  uint64 mtime = 2;
+}
+
+message Files {
+  repeated File file = 1;
+}
+
+message Chunk {
+  bytes hash = 1;
+  uint64 pos = 2;
+  uint32 len = 3;
+}
+
+message Chunks {
+  string         path = 1;
+  repeated Chunk hashes = 2;
+}
+
+message Request {
+  oneof Kind {
+    Init    init = 1;
+    Files  files = 2;
+    Chunks chunk = 3;
+  }
+}
+
+// Denotes that the we are requesting chunk hashes for a given file
+// Empty more message means we don't need any more information about files
+message More {
+  repeated string file = 1;
+}
+
+
+message Delete {
+  string file = 1;
+}
+
+message Create {
+  string file = 1;
+}
+
+message Data {
+  uint64 pos = 1;
+  uint32 len = 2;
+  bytes data = 3;
+}
+
+message Copy {
+  string src = 1;
+  string dst = 2;
+}
+
+message Response {
+  oneof Kind {
+    More   more = 1;
+    Delete delete = 2;
+    Create create = 3;
+    Data   data = 4;
+    Copy   copy = 5;
+    bool   done = 6;
+  }
+}
+
+service Fscp {
+  rpc Sync(stream Request) returns (stream Response);
+}
